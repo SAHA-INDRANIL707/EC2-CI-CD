@@ -51,8 +51,8 @@ docker compose up --build
 ```
 
 - **Frontend App**: Open [http://localhost:3000](http://localhost:3000)
-- **Backend API & Swagger Docs**: Open [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Backend Health Check**: Open [http://localhost:8000/health](http://localhost:8000/health)
+- **Backend API & Swagger Docs**: Open [http://localhost:3001/docs](http://localhost:3001/docs)
+- **Backend Health Check**: Open [http://localhost:3001/health](http://localhost:3001/health)
 
 To stop the containers:
 ```bash
@@ -78,7 +78,7 @@ python -m venv venv
 # source venv/bin/activate
 
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 3001
 ```
 
 ### 2. Start Next.js Frontend

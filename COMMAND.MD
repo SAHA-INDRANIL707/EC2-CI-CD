@@ -109,7 +109,7 @@ cd backend
 pip install -r requirements.txt
 
 # 4. Run development server (Auto-reloads on code changes)
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 3001
 ```
 
 ### Next.js Frontend
@@ -141,11 +141,36 @@ docker system prune -f
 
 ---
 
+## 🔐 7. Required GitHub Secrets for CI/CD
+
+Go to **GitHub Repository** -> **Settings** -> **Secrets and variables** -> **Actions** -> **New repository secret**:
+
+| Secret Name | Description / Example Value |
+| :--- | :--- |
+| `DOCKERHUB_USERNAME` | Your Docker Hub username (e.g. `indranilsaha707`) |
+| `DOCKERHUB_TOKEN` | Docker Hub Access Token (Generated under Docker Hub Account Settings -> Security) |
+| `EC2_HOST` | Public IPv4 Address or Public DNS of your EC2 instance (e.g. `54.210.12.34`) |
+| `EC2_USER` | EC2 SSH username (`ubuntu` for Ubuntu AMI, or `ec2-user` for Amazon Linux) |
+| `EC2_SSH_KEY` | Entire raw contents of your `.pem` private key file (including `-----BEGIN RSA PRIVATE KEY-----` and `-----END RSA PRIVATE KEY-----`) |
+
+---
+
+## 🏷️ 8. Published Docker Image Names
+
+Your CI/CD workflow automatically builds and publishes the following images to Docker Hub:
+
+- **Backend API**: `<your-dockerhub-username>/calculator-backend:latest`
+- **Frontend UI**: `<your-dockerhub-username>/calculator-frontend:latest`
+
+In your EC2 server, they are orchestrated via [docker-compose.prod.yml](file:///e:/EC2-PROJECT-CICD/docker-compose.prod.yml).
+
+---
+
 ## 🌐 Quick URL Reference
 
 | Service | URL | Description |
 | :--- | :--- | :--- |
 | **Frontend UI** | [http://localhost:3000](http://localhost:3000) | Interactive Next.js Calculator |
-| **Backend Health** | [http://localhost:8000/health](http://localhost:8000/health) | Backend Status Verification |
-| **Swagger API Docs** | [http://localhost:8000/docs](http://localhost:8000/docs) | Interactive API Testing |
-| **ReDoc API Docs** | [http://localhost:8000/redoc](http://localhost:8000/redoc) | API Specification Documentation |
+| **Backend Health** | [http://localhost:3001/health](http://localhost:3001/health) | Backend Status Verification |
+| **Swagger API Docs** | [http://localhost:3001/docs](http://localhost:3001/docs) | Interactive API Testing |
+| **ReDoc API Docs** | [http://localhost:3001/redoc](http://localhost:3001/redoc) | API Specification Documentation |

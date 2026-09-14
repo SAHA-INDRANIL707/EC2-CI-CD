@@ -1,13 +1,11 @@
 services:
   # ==========================================
-  # Python Backend Service
+  # Python Backend Service (Pulled from Docker Hub)
   # ==========================================
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ${DOCKERHUB_USERNAME:-indranilsaha}/calculator-backend:latest
     container_name: calculator-backend
-    restart: unless-stopped
+    restart: always
     ports:
       - "3001:8000"
     environment:
@@ -24,24 +22,22 @@ services:
       - calculator-net
 
   # ==========================================
-  # Next.js Frontend Service
+  # Next.js Frontend Service (Pulled from Docker Hub)
   # ==========================================
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ${DOCKERHUB_USERNAME:-indranilsaha}/calculator-frontend:latest
     container_name: calculator-frontend
-    restart: unless-stopped
+    restart: always
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      - NEXT_PUBLIC_BASE_PATH=/app1
+      - NEXT_PUBLIC_API_URL=/app2
       - INTERNAL_BACKEND_URL=http://backend:8000
     depends_on:
       backend:
         condition: service_healthy
-        required: true
     networks:
       - calculator-net
 

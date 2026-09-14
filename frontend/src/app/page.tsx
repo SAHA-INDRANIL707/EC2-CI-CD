@@ -54,23 +54,25 @@ export default function CalculatorPage() {
   // Check backend health
   const checkBackendHealth = useCallback(async () => {
     try {
-      // First try via Next.js proxy rewrite, then fallback to direct BACKEND_API_BASE
-      const url = BACKEND_API_BASE ? `${BACKEND_API_BASE}/health` : "/health/py";
-      const res = await fetch(url, { cache: "no-store" });
-      if (res.ok) {
-        setBackendStatus("online");
-      } else {
-        setBackendStatus("offline");
+      // Check via /app2/health (Nginx proxy) or BACKEND_API_BASE or fallback
+      const healthEndpoints = [
+        BACKEND_API_BASE ? `${BACKEND_API_BASE}/health` : "/app2/health",
+        "/app2/health",
+        "/health/py",
+        "http://localhost:3001/health"
+      ];
+
+      for (const endpoint of healthEndpoints) {
+        try {
+          const res = await fetch(endpoint, { cache: "no-store" });
+          if (res.ok) {
+            setBackendStatus("online");
+            return;
+          }
+        } catch (_) {}
       }
+      setBackendStatus("offline");
     } catch (err) {
-      // Fallback try direct localhost:8000
-      try {
-        const directRes = await fetch("http://localhost:8000/health", { cache: "no-store" });
-        if (directRes.ok) {
-          setBackendStatus("online");
-          return;
-        }
-      } catch (_) {}
       setBackendStatus("offline");
     }
   }, []);
@@ -93,24 +95,35 @@ export default function CalculatorPage() {
       operation: op
     };
 
-    let targetUrl = BACKEND_API_BASE ? `${BACKEND_API_BASE}/api/calculate` : "/api/py/calculate";
+    // Try Nginx /app2/api/calculate first, then configured base, then localhost fallback
+    const endpointsToTry = [
+      BACKEND_API_BASE ? `${BACKEND_API_BASE}/api/calculate` : "/app2/api/calculate",
+      "/app2/api/calculate",
+      "/api/py/calculate",
+      "http://localhost:3001/api/calculate"
+    ];
+
+    let response: Response | null = null;
+    let successfulUrl = "";
+
+    for (const url of endpointsToTry) {
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestPayload),
+        });
+        if (res.status !== 404) {
+          response = res;
+          successfulUrl = url;
+          break;
+        }
+      } catch (_) {}
+    }
 
     try {
-      let response: Response;
-      try {
-        response = await fetch(targetUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(requestPayload),
-        });
-      } catch (networkError) {
-        // Fallback to direct localhost if rewrite is not resolving in dev
-        targetUrl = "http://localhost:8000/api/calculate";
-        response = await fetch(targetUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(requestPayload),
-        });
+      if (!response) {
+        throw new Error("Could not reach Python calculation service at /app2 or backend ports");
       }
 
       const endTime = performance.now();
@@ -305,7 +318,7 @@ export default function CalculatorPage() {
             <Layers size={13} /> Next.js Frontend (Port 3000)
           </span>
           <span className="badge backend">
-            <Server size={13} /> Python FastAPI (Port 8000)
+            <Server size={13} /> Python FastAPI (Port 3001)
           </span>
           <span className={`badge ${backendStatus === "online" ? "status-online" : backendStatus === "checking" ? "badge" : "status-offline"}`}>
             <span className="pulse-dot"></span>

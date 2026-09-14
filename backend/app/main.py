@@ -64,6 +64,9 @@ class HealthResponse(BaseModel):
 @app.get("/", response_model=HealthResponse, tags=["Health"])
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
 @app.get("/api/health", response_model=HealthResponse, tags=["Health"])
+@app.get("/app2", response_model=HealthResponse, tags=["Health"])
+@app.get("/app2/health", response_model=HealthResponse, tags=["Health"])
+@app.get("/app2/api/health", response_model=HealthResponse, tags=["Health"])
 def health_check():
     """Health check endpoint to verify backend status."""
     return HealthResponse(
@@ -75,6 +78,7 @@ def health_check():
 
 
 @app.post("/api/calculate", response_model=CalculationResponse, tags=["Calculator"])
+@app.post("/app2/api/calculate", response_model=CalculationResponse, tags=["Calculator"])
 def perform_calculation(req: CalculationRequest):
     """
     Receives calculation operands and operation from the frontend,
