@@ -14,6 +14,7 @@ import {
   Delete,
   RotateCcw
 } from "lucide-react";
+import { API_ROUTES, getHost } from "@/config/apiConfig";
 
 interface CalculationRecord {
   id: string;
@@ -35,8 +36,6 @@ interface ApiLog {
   time: string;
 }
 
-const BACKEND_API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
-
 export default function CalculatorPage() {
   const [displayValue, setDisplayValue] = useState<string>("0");
   const [storedValue, setStoredValue] = useState<number | null>(null);
@@ -51,18 +50,16 @@ export default function CalculatorPage() {
   const [history, setHistory] = useState<CalculationRecord[]>([]);
   const [latestLog, setLatestLog] = useState<ApiLog | null>(null);
 
-  // Check backend health
+  // Check backend health via Next.js internal API
   const checkBackendHealth = useCallback(async () => {
     try {
-      // Check via /app2/health (Nginx proxy) or BACKEND_API_BASE or fallback
-      const healthEndpoints = [
-        BACKEND_API_BASE ? `${BACKEND_API_BASE}/health` : "/app2/health",
-        "/app2/health",
-        "/health/py",
-        "http://localhost:3001/health"
+      const endpoints = [
+        API_ROUTES.CLIENT_HEALTH,
+        "/app1/api/health/",
+        "/api/health/"
       ];
 
-      for (const endpoint of healthEndpoints) {
+      for (const endpoint of endpoints) {
         try {
           const res = await fetch(endpoint, { cache: "no-store" });
           if (res.ok) {
@@ -83,7 +80,7 @@ export default function CalculatorPage() {
     return () => clearInterval(interval);
   }, [checkBackendHealth]);
 
-  // Request Python API calculation
+  // Request calculation through Next.js server API
   const executeCalculation = async (num1: number, num2: number, op: string) => {
     setIsComputing(true);
     setErrorMessage(null);
@@ -95,18 +92,16 @@ export default function CalculatorPage() {
       operation: op
     };
 
-    // Try Nginx /app2/api/calculate first, then configured base, then localhost fallback
-    const endpointsToTry = [
-      BACKEND_API_BASE ? `${BACKEND_API_BASE}/api/calculate` : "/app2/api/calculate",
-      "/app2/api/calculate",
-      "/api/py/calculate",
-      "http://localhost:3001/api/calculate"
+    // User calls Next.js API route only -> Next.js calls Python internally!
+    const apiEndpoints = [
+      API_ROUTES.CLIENT_CALCULATE,
+      "/app1/api/calculate/",
+      "/api/calculate/"
     ];
 
     let response: Response | null = null;
-    let successfulUrl = "";
 
-    for (const url of endpointsToTry) {
+    for (const url of apiEndpoints) {
       try {
         const res = await fetch(url, {
           method: "POST",
@@ -115,7 +110,6 @@ export default function CalculatorPage() {
         });
         if (res.status !== 404) {
           response = res;
-          successfulUrl = url;
           break;
         }
       } catch (_) {}
@@ -123,7 +117,7 @@ export default function CalculatorPage() {
 
     try {
       if (!response) {
-        throw new Error("Could not reach Python calculation service at /app2 or backend ports");
+        throw new Error("Could not reach Next.js Server API at /app1/api/calculate");
       }
 
       const endTime = performance.now();
@@ -139,7 +133,7 @@ export default function CalculatorPage() {
       });
 
       if (!response.ok) {
-        const errorDetail = data.detail || "Calculation error on Python backend";
+        const errorDetail = data.detail || "Calculation error";
         setErrorMessage(errorDetail);
         setDisplayValue("Error");
         setHistoryExpression(`${num1} ${getSymbol(op)} ${num2}`);
@@ -172,11 +166,11 @@ export default function CalculatorPage() {
       const endTime = performance.now();
       const latency = Math.round(endTime - startTime);
       setBackendStatus("offline");
-      setErrorMessage("Backend unreachable. Ensure Python service is running.");
-      setDisplayValue("Offline");
+      setErrorMessage(err.message || "Failed to reach calculation service");
+      setDisplayValue("Error");
       setLatestLog({
         request: requestPayload,
-        response: { error: err.message || "Failed to reach Python API" },
+        response: { error: err.message || "Failed to reach Next.js API" },
         status: 503,
         latencyMs: latency,
         time: new Date().toLocaleTimeString(),
@@ -450,23 +444,23 @@ export default function CalculatorPage() {
           <div className="panel-card">
             <div className="panel-header">
               <span className="panel-title">
-                <Zap size={16} color="#38bdf8" /> Microservice Flow
+                <Zap size={16} color="#38bdf8" /> 3-Tier Internal Flow
               </span>
             </div>
             <div className="arch-diagram">
               <div className="arch-node next">
-                <span>Next.js UI</span>
-                <small>React Client</small>
+                <span>Browser UI</span>
+                <small>/app1/</small>
               </div>
               <span className="arch-arrow">➔</span>
-              <div className="arch-node" style={{ color: "#a855f7", borderColor: "rgba(168, 85, 247, 0.4)" }}>
-                <span>REST POST</span>
+              <div className="arch-node" style={{ color: "#38bdf8", borderColor: "rgba(56, 189, 248, 0.4)" }}>
+                <span>Next.js API</span>
                 <small>/api/calculate</small>
               </div>
               <span className="arch-arrow">➔</span>
               <div className="arch-node fastapi">
                 <span>Python Engine</span>
-                <small>calculate() func</small>
+                <small>Docker Network</small>
               </div>
             </div>
           </div>

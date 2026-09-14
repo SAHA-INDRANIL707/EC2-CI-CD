@@ -33,7 +33,6 @@ services:
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_BASE_PATH=/app1
-      - NEXT_PUBLIC_API_URL=/app2
       - INTERNAL_BACKEND_URL=http://backend:8000
     depends_on:
       backend:
